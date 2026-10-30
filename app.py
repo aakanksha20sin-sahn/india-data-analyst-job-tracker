@@ -102,25 +102,32 @@ st.title("India Data Analyst Job Market Tracker")
 live = jobs[jobs["period"] == "live"]
 last = live["last_seen"].max() if len(live) else None
 IST = timezone(timedelta(hours=5, minutes=30))          # India time
+STAMP = pd.to_datetime(last, utc=True).tz_convert(IST) if last else None
+N_LIVE, N_OLD = len(live), int((jobs["period"] == "2023").sum())
+
+
+def ago(delta):
+    mins = int(delta.total_seconds() // 60)
+    if mins < 2:
+        return "just now"
+    if mins < 60:
+        return f"{mins} minutes ago"
+    if mins < 48 * 60:
+        return f"{mins // 60} hours ago"
+    return f"{mins // 1440} days ago"
 
 
 @st.fragment(run_every=60)
 def live_clock():
-    """Real clock: shows the date and time right now (India time) and refreshes every minute."""
+    """Real clock: today's date and time now (India time); also the 'ago' text. Refreshes every minute."""
     now = datetime.now(IST)
     st.markdown(f"**Today:** {now:%A, %d %B %Y} &nbsp;|&nbsp; **Time now:** {now:%I:%M %p} IST")
+    updated = f"{STAMP:%d %b %Y, %I:%M %p} IST ({ago(now - STAMP)})" if STAMP is not None else "no live data yet"
+    st.caption(f"New jobs last collected: {updated}  |  Live unique roles: {N_LIVE}  |  "
+               f"Archive roles (2023): {N_OLD}  |  Data is collected automatically every day.")
 
 
 live_clock()
-if last:
-    stamp = pd.to_datetime(last, utc=True).tz_convert(IST)
-    hours = (datetime.now(IST) - stamp).total_seconds() / 3600
-    age = f"{hours:.0f} hours ago" if hours >= 1.5 else "about an hour ago" if hours >= 0.75 else "just now"
-    updated = f"{stamp:%d %b %Y, %I:%M %p} IST ({age})"
-else:
-    updated = "no live data yet"
-st.caption(f"New jobs last collected: {updated}  |  Live unique roles: {len(live)}  |  "
-           f"Archive roles (2023): {(jobs['period'] == '2023').sum()}  |  Data is collected automatically every day.")
 
 if df.empty:
     st.warning("No jobs match these filters. Remove a filter in the sidebar.")
