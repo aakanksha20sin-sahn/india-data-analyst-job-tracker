@@ -1,0 +1,11 @@
+.env
+_env
+**/.env
+raw data/
+data/raw_jooble/
+data/raw_jsearch/
+__pycache__/
+*.pyc
+report.txt
+india_sample.csv
+jsearch_sample.json
