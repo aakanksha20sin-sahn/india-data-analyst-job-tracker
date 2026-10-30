@@ -53,8 +53,8 @@ def show(fig, **kw):
     st.plotly_chart(fig, theme=None, width="stretch")
 
 
-@st.cache_data(show_spinner=False)
-def load():
+@st.cache_data(show_spinner=False, ttl=3600)
+def load(db_version):   # db_version changes whenever jobs.db changes, so new data always shows
     conn = sqlite3.connect(DB)
     jobs = pd.read_sql_query("SELECT * FROM jobs_clean", conn)
     skills = pd.read_sql_query("SELECT * FROM jobs_clean_skills", conn)
@@ -66,7 +66,7 @@ if not DB.exists():
     st.error("data/jobs.db not found. Run this from the Job Tracker folder.")
     st.stop()
 try:
-    jobs, skills = load()
+    jobs, skills = load(DB.stat().st_mtime)
 except Exception:
     st.error("Table jobs_clean not found. Run:  python build_clean.py")
     st.stop()
