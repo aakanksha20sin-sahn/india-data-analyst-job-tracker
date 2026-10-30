@@ -2,6 +2,7 @@
 Run from the Job Tracker folder:   streamlit run app.py
 Reads data/jobs.db (tables jobs_clean and jobs_clean_skills made by build_clean.py)."""
 import sqlite3
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import pandas as pd
@@ -100,8 +101,26 @@ for s in skill_pick:
 st.title("India Data Analyst Job Market Tracker")
 live = jobs[jobs["period"] == "live"]
 last = live["last_seen"].max() if len(live) else None
-st.caption(f"Live data last updated: {str(last)[:16].replace('T', ' ') if last else 'no live data yet'} UTC  |  "
-           f"Live unique roles: {len(live)}  |  Archive roles (2023): {(jobs['period'] == '2023').sum()}")
+IST = timezone(timedelta(hours=5, minutes=30))          # India time
+
+
+@st.fragment(run_every=60)
+def live_clock():
+    """Real clock: shows the date and time right now (India time) and refreshes every minute."""
+    now = datetime.now(IST)
+    st.markdown(f"**Today:** {now:%A, %d %B %Y} &nbsp;|&nbsp; **Time now:** {now:%I:%M %p} IST")
+
+
+live_clock()
+if last:
+    stamp = pd.to_datetime(last, utc=True).tz_convert(IST)
+    hours = (datetime.now(IST) - stamp).total_seconds() / 3600
+    age = f"{hours:.0f} hours ago" if hours >= 1.5 else "about an hour ago" if hours >= 0.75 else "just now"
+    updated = f"{stamp:%d %b %Y, %I:%M %p} IST ({age})"
+else:
+    updated = "no live data yet"
+st.caption(f"New jobs last collected: {updated}  |  Live unique roles: {len(live)}  |  "
+           f"Archive roles (2023): {(jobs['period'] == '2023').sum()}  |  Data is collected automatically every day.")
 
 if df.empty:
     st.warning("No jobs match these filters. Remove a filter in the sidebar.")
